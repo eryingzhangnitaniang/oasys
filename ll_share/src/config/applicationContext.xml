@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:c="http://www.springframework.org/schema/c" 
+	xmlns:cache="http://www.springframework.org/schema/cache" 
+	xmlns:context="http://www.springframework.org/schema/context" 
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc" 
+	xmlns:jee="http://www.springframework.org/schema/jee" 
+	xmlns:lang="http://www.springframework.org/schema/lang" 
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xmlns:p="http://www.springframework.org/schema/p" 
+	xmlns:task="http://www.springframework.org/schema/task" 
+	xmlns:tx="http://www.springframework.org/schema/tx" 
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/cache 
+		http://www.springframework.org/schema/cache/spring-cache.xsd
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/jdbc 
+		http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+		http://www.springframework.org/schema/jee 
+		http://www.springframework.org/schema/jee/spring-jee.xsd
+		http://www.springframework.org/schema/lang 
+		http://www.springframework.org/schema/lang/spring-lang.xsd
+		http://www.springframework.org/schema/mvc 
+		http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/task 
+		http://www.springframework.org/schema/task/spring-task.xsd
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/util 
+		http://www.springframework.org/schema/util/spring-util.xsd"
+		default-autowire="byName"
+>
+
+	<!-- 引入项目配置文件 -->
+	<context:property-placeholder location="classpath:config/config.properties" />	 
+	 
+	 <!-- 去什么地方找注解 /注解扫描的范围-->
+    <context:component-scan base-package="*" />
+	 	 
+	 <!-- 配置数据源 -->        <!-- 配置对应的数据库连接  -->
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource"> 
+    	<property name="driverClassName"><value>${driverClassName}</value></property> 
+        <property name="url"><value>${jdbc.url}</value></property> 
+        <property name="username"><value>${jdbc.username}</value></property> 
+        <property name="password"><value>${jdbc.password}</value></property> 
+
+    </bean> 
+	 
+	    	<!-- 配置session工厂 -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.hbm2ddl.auto">${hibernate.hbm2ddl.auto}</prop>
+				<prop key="hibernate.dialect">${hibernate.dialect}</prop>
+				<prop key="hibernate.show_sql">${hibernate.show_sql}</prop>
+				<prop key="hibernate.format_sql">${hibernate.format_sql}</prop>
+				<prop key="hibernate.use_sql_comments">${hibernate.use_sql_comments}</prop>
+			</props>
+		</property>
+
+		<!-- 自动扫描注解方式配置的实体类文件 -->
+		<property name="packagesToScan">
+			<list>
+				<value>pojo</value>
+			</list>
+		</property>		
+	</bean>
+	
+	
+		<!-- 配置事务管理器    ref去找对应的id   并配置 session -->
+	<bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean>
+	
+	<!-- 定义advice,配置传播特性、事务隔离级别、只读事务、回滚策略 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>            <!--  name  配置service中的方法名  ， -->
+			<tx:method name="insert*" propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			<tx:method name="add*" propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			<tx:method name="update*" propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			<tx:method name="delete*" propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			<tx:method name="*" propagation="REQUIRED" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- 定义那些类使用事务 -->        <!-- 第一个*：返回值        包目录：service层的目录  
+                                                                        两 . ：该目录下的任意子目录       第二个* ：类名
+                                                                        第三个*：方法名          括号中的两个：任意个方法的参数 -->
+                                                                     
+	<aop:config>                                     
+		<aop:advisor pointcut="execution(* service..*.*(..))" advice-ref="txAdvice"/>
+	</aop:config>
+	
+	
+</beans> 
